@@ -22,8 +22,9 @@
 
 
 import flask
-from flask import Flask, request
+from flask import Flask, request,redirect, make_response
 import json
+from copy import deepcopy
 app = Flask(__name__)
 app.debug = True
 
@@ -35,6 +36,7 @@ app.debug = True
 
 class World:
     def __init__(self):
+        self.listeners = dict()
         self.clear()
         
     def update(self, entity, key, value):
@@ -44,9 +46,11 @@ class World:
 
     def set(self, entity, data):
         self.space[entity] = data
+        self.notify_all(entity,data)
 
     def clear(self):
-        self.space = dict()
+        self.space = dict()      
+        self.listeners = dict()
 
     def get(self, entity):
         return self.space.get(entity,dict())
@@ -54,10 +58,23 @@ class World:
     def world(self):
         return self.space
 
+    def notify_all(self,entity,data):
+        for listener in self.listeners:
+           self.listeners[listener][entity] = data
+
+    def add_listener(self,listener_name):
+        self.listeners[listener_name] = deepcopy(self.space)
+
+    def get_listener(self, listener_name):
+        return self.listeners[listener_name]
+
+    def clear_listener(self, listener_name):
+        self.listeners[listener_name] = dict()
+
 # you can test your webservice from the commandline
 # curl -v   -H "Content-Type: application/json" -X PUT http://127.0.0.1:5000/entity/X -d '{"x":1,"y":1}' 
 
-myWorld = World()          
+myWorld = World()
 
 # I give this to you, this is how you get the raw body/data portion of a post in flask
 # this should come with flask but whatever, it's not my project.
@@ -68,33 +85,51 @@ def flask_post_json():
         return request.json
     elif (request.data != None and request.data.decode("utf8") != u''):
         return json.loads(request.data.decode("utf8"))
+
     else:
         return json.loads(request.form.keys()[0])
 
 @app.route("/")
 def hello():
     '''Return something coherent here.. perhaps redirect to /static/index.html '''
-    return None
+    return redirect("/static/index.html", code=302)
 
 @app.route("/entity/<entity>", methods=['POST','PUT'])
 def update(entity):
     '''update the entities via this interface'''
-    return None
+    v = flask_post_json()
+    myWorld.set(entity, v)
+    e = myWorld.get(entity)
+    return make_response(flask.jsonify(e), 200)
 
 @app.route("/world", methods=['POST','GET'])    
 def world():
     '''you should probably return the world here'''
-    return None
+    world = myWorld.world()
+    return make_response(flask.jsonify(world), 200)
 
-@app.route("/entity/<entity>")    
+@app.route("/entity/<entity>")
 def get_entity(entity):
     '''This is the GET version of the entity interface, return a representation of the entity'''
-    return None
+    entity = myWorld.get(entity)
+    return make_response(flask.jsonify(entity), 200)
 
 @app.route("/clear", methods=['POST','GET'])
 def clear():
     '''Clear the world out!'''
-    return None
+    myWorld.clear()
+    return make_response(flask.jsonify(myWorld.world()), 200)
+
+@app.route("/listener/<id>", methods=['POST','PUT'])
+def add_listener(id):
+    myWorld.add_listener(id)
+    return make_response(flask.jsonify(myWorld.get_listener(id)), 200)
+
+@app.route("/listener/<id>")
+def get_listener(id):
+    content = myWorld.get_listener(id)
+    myWorld.clear_listener(id)
+    return make_response(flask.jsonify(content), 200)
 
 if __name__ == "__main__":
     app.run()
