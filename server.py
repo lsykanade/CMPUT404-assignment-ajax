@@ -50,7 +50,8 @@ class World:
 
     def clear(self):
         self.space = dict()      
-        self.listeners = dict()
+        for listener in self.listeners:
+            self.listeners[listener] = {"clear": "plz"}
 
     def get(self, entity):
         return self.space.get(entity,dict())
@@ -59,7 +60,6 @@ class World:
         return self.space
 
     def post_world(self, world):
-        self.clear()
         self.space = world
 
     def notify_all(self,entity,data):

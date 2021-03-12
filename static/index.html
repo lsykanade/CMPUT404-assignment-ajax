@@ -169,6 +169,10 @@ function addEntity(entity, data) {
         if (response){
             var objs = JSON.parse(response);
             for (var i in objs){
+                if (i == "clear"){
+                    world = {}
+                    break;
+                }
                 world[i] = objs[i];
             }
         }
@@ -315,6 +319,10 @@ function update() {
         if (response){
             var objs = JSON.parse(response);
             for (var i in objs){
+                if (i == "clear"){
+                    world = {}
+                    break;
+                }
                 world[i] = objs[i];
             }
             drawNextFrame();
