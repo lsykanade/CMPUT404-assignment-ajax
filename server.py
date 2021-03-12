@@ -58,6 +58,10 @@ class World:
     def world(self):
         return self.space
 
+    def post_world(self, world):
+        self.clear()
+        self.space = world
+
     def notify_all(self,entity,data):
         for listener in self.listeners:
            self.listeners[listener][entity] = data
@@ -105,8 +109,13 @@ def update(entity):
 @app.route("/world", methods=['POST','GET'])    
 def world():
     '''you should probably return the world here'''
-    world = myWorld.world()
-    return make_response(flask.jsonify(world), 200)
+    if request.method == "POST":
+        world = flask_post_json()
+        myWorld.post_world(world)
+        return make_response(flask.jsonify(world), 200)
+    else:
+        world = myWorld.world()
+        return make_response(flask.jsonify(world), 200)
 
 @app.route("/entity/<entity>")
 def get_entity(entity):
